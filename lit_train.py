@@ -217,7 +217,7 @@ class MoleculeNet(InMemoryDataset):
             dataset = [x for x in dataset if len(x) > 0]  # Filter empty lines.
 
         data_list = []
-        for line in dataset:
+        for line in tqdm(dataset):
             line = re.sub(r'\".*\"', '', line)  # Replace ".*" strings.
             line = line.split(',')
 
@@ -349,11 +349,11 @@ def cli_main():
     print(f'Number of test graphs: {len(test_dataset)}')
 
     train_dataset.shuffle()
-    train_dataset=train_dataset[:17000]
-    val_dataset=train_dataset[17000:]
+    # train_dataset=train_dataset[:17000]
+    # val_dataset=train_dataset[17000:]
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    # val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 
@@ -372,6 +372,7 @@ def cli_main():
     # ------------
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.fast_dev_run=True
+    trainer.gpus=1
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
