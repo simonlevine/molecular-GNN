@@ -271,7 +271,6 @@ def cli_main():
     # ------------
     parser = ArgumentParser()
     parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--fast_dev_run', default=True, type=bool)
     parser = pl.Trainer.add_argparse_args(parser)
     parser = LitClassifier.add_model_specific_args(parser)
     args = parser.parse_args()
@@ -327,6 +326,7 @@ def cli_main():
     # training
     # ------------
     trainer = pl.Trainer.from_argparse_args(args)
+    trainer.fast_dev_run=True
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
