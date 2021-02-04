@@ -339,10 +339,10 @@ def cli_main(process_data=True):
     dataset = MoleculeNet(root='./',name='train_augmented')
     test_dataset = MoleculeNet(root='./',name='test')
 
-    dataset.shuffle()
+    # dataset.shuffle()
 
-    train_dataset=dataset[:17000]
-    val_dataset=dataset[17000:]
+    # train_dataset=dataset[:17000]
+    # val_dataset=dataset[17000:]
 
     # if process_data:
     train_dataset.process()
@@ -400,7 +400,16 @@ if __name__ == '__main__':
     df['label'] = df['logD']
     df['label'] = df['label'].fillna(df['logP'])
     df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
+
     augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
-    augmented_df.to_csv('./train_augmented/raw/train_augmented.csv',index=False)
+
+    aug_train_df = augmented_df.sample(frac = 0.80)
+    aug_eval_df =  augmented_df.drop(aug_train_df.index) 
+
+    augmented_df.to_csv('./all_augmented/raw/all_augmented.csv',index=False)
+    aug_train_df.to_csv('./eval_augmented/raw/train_augmented.csv',index=False)
+    aug_eval_df.to_csv('./train_augmented/raw/eval_augmented.csv',index=False)
+
+
 
     cli_main(process_data=False)
