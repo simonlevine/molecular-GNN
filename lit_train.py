@@ -177,7 +177,7 @@ class MoleculeNet(InMemoryDataset):
         'test':['Test','holdout_set.csv','holdout_set',0,1],
         # 'eval': ['Lipophilicity Filtered', 'Lipophilicity_filtered.csv', 'Lipophilicity_filtered', 0, 1], #stanford dataset
         'train_augmented':['Train Augmented','train_augmented.csv','train_augmented',0,1], #vantai train + stanford
-        'eval_augmented':['Eval Augmented','eval_augmented.csv','eval_augmented',0,1], #vantai train + stanford
+        'eval_augmented':['Val Augmented','val_augmented.csv','val_augmented',0,1], #vantai train + stanford
 
     }
 
@@ -401,11 +401,12 @@ if __name__ == '__main__':
     augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
 
     aug_train_df = augmented_df.sample(frac = 0.80)
-    aug_eval_df =  augmented_df.drop(aug_train_df.index) 
+    aug_val_df =  augmented_df.drop(aug_train_df.index) 
 
     augmented_df.to_csv('./all_augmented/raw/all_augmented.csv',index=False)
-    aug_train_df.to_csv('./eval_augmented/raw/train_augmented.csv',index=False)
-    aug_eval_df.to_csv('./train_augmented/raw/eval_augmented.csv',index=False)
+
+    aug_train_df.to_csv('./val_augmented/raw/train_augmented.csv',index=False)
+    aug_val_df.to_csv('./train_augmented/raw/val_augmented.csv',index=False)
 
 
 
