@@ -404,9 +404,8 @@ if __name__ == '__main__':
     aug_val_df =  augmented_df.drop(aug_train_df.index) 
 
     augmented_df.to_csv('./all_augmented/raw/all_augmented.csv',index=False)
-
-    aug_train_df.to_csv('./val_augmented/raw/train_augmented.csv',index=False)
-    aug_val_df.to_csv('./train_augmented/raw/val_augmented.csv',index=False)
+    aug_train_df.to_csv('./train_augmented/raw/train_augmented.csv',index=False)
+    aug_val_df.to_csv('./val_augmented/raw/val_augmented.csv',index=False)
 
 
 
