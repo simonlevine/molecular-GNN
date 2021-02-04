@@ -136,6 +136,12 @@ class LitClassifier(pl.LightningModule):
             # 'monitor': 'val_loss'
             # }
 
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument('--learning_rate', type=float, default=0.01)
+        return parser
+
 
 class MoleculeNet(InMemoryDataset):
     r"""The `MoleculeNet <http://moleculenet.ai/datasets-1>`_ benchmark
