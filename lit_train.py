@@ -339,7 +339,7 @@ def cli_main(process_data=True):
     # ------------
 
     train_dataset = MoleculeNet(root='./',name='train')
-    val_dataset = MoleculeNet(root='./',name='lipo')
+    val_dataset = MoleculeNet(root='./',name='alt')
     test_dataset = MoleculeNet(root='./',name='test')
 
     # if process_data:
