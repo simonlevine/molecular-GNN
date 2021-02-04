@@ -339,7 +339,7 @@ def cli_main():
 
     torch.manual_seed(12345)
 
-    train_dataset = MoleculeNet(root='./',name='train_augmented')
+    train_dataset = MoleculeNet(root='./',name='train')#_augmented')
     train_dataset.process()
 
     test_dataset = MoleculeNet(root='./',name='test')
