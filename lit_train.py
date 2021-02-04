@@ -330,7 +330,7 @@ def cli_main():
     # ------------
 
 
-    train_dataset = MoleculeNet(root='./',name='train')#_augmented')
+    train_dataset = MoleculeNet(root='./',name='train')# train_augmented
     train_dataset.process()
 
     test_dataset = MoleculeNet(root='./',name='test')
@@ -361,9 +361,7 @@ def cli_main():
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
-    trainer.fast_dev_run=True
-    trainer.gpus=1
+    trainer = pl.Trainer(fast_dev_run=True,gpus=1)
     trainer.fit(model, train_loader) #, val_loader)
 
     # ------------
