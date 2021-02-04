@@ -129,12 +129,12 @@ class LitClassifier(pl.LightningModule):
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
         optimizer=torch.optim.Adam(self.net.parameters(), lr=0.01)
-        # scheduler=ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
-        return optimizer #{
-            # 'optimizer': optimizer,
-            # 'lr_scheduler': scheduler,
-            # 'monitor': 'val_loss'
-            # }
+        scheduler=ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': scheduler,
+            'monitor': 'val_loss'
+            }
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -347,12 +347,12 @@ def cli_main(process_data=True):
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of test graphs: {len(test_dataset)}')
 
-    # train_dataset.shuffle()
-    # train_dataset=train_dataset[:17000]
-    # val_dataset=train_dataset[17000:]
+    train_dataset.shuffle()
+    train_dataset=train_dataset[:17000]
+    val_dataset=train_dataset[17000:]
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    # val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
 
@@ -369,8 +369,8 @@ def cli_main(process_data=True):
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer(fast_dev_run=True,gpus=1)
-    trainer.fit(model, train_loader) #, val_loader)
+    trainer = pl.Trainer(fast_dev_run=False,gpus=1,max_epochs=300)
+    trainer.fit(model, train_loader, val_loader)
 
     # ------------
     # # testing
