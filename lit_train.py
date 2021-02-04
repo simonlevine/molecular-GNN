@@ -386,12 +386,17 @@ class Net(torch.nn.Module):
 if __name__ == '__main__':
     train_df = pd.read_csv('train/raw/train.csv')
 
-    df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
-    df=df[['smiles','logP','logD']]
-    df['label']=df['logD'] #.fillna(df['logP'])
-    df = df.drop_duplicates('smiles').dropna(subset=['label']).drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
-    df = df[~df.Smiles.isin(train_df.Smiles)]
-    augmented_df = pd.concat((train_df,df)).drop_duplicates('Smiles')
+    alt_df=pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
+    alt_df = alt_df[~alt_df.Smiles.isin(train_df.Smiles)]
+    augmented_df=pd.concat((train_df,alt_df)).drop_duplicates('Smiles')
+
+    # df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
+    # df=df[['smiles','logP','logD']]
+    # df['label']=df['logD'] #.fillna(df['logP'])
+
+    # df = df.drop_duplicates('smiles').dropna(subset=['label']).drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
+    # df = df[~df.Smiles.isin(train_df.Smiles)]
+    # augmented_df = pd.concat((train_df,df)).drop_duplicates('Smiles')
     
     aug_train_df = augmented_df.sample(frac = 0.85)
     aug_val_df =  augmented_df.drop(aug_train_df.index) 
