@@ -377,8 +377,8 @@ def cli_main(process_data=True):
     # # ------------
     # result = trainer.test(test_dataloaders=test_loader)
     # print(result)
-
-    out = [float(model(data.x, data.edge_index, None, data.batch).cpu().detach().numpy().squeeze()) for data in test_loader]
+    
+    out = [float(model.forward(data.x, data.edge_index, None, data.batch).cpu().detach().numpy().squeeze()) for data in test_loader]
     print(out)
     submission_df = pd.read_csv('test/raw/holdout_set.csv')
     submission_df['predicted']=out
