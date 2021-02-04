@@ -95,7 +95,7 @@ def cli_main(process_data=True):
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer(fast_dev_run=False,gpus=1,max_epochs=300)
+    trainer = pl.Trainer(fast_dev_run=False,gpus=0,max_epochs=200)
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
@@ -388,7 +388,7 @@ if __name__ == '__main__':
 
     df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
     df=df[['smiles','logP','logD']]
-    df['label']=df['logD'].fillna(df['logP'])
+    df['label']=df['logD'] #.fillna(df['logP'])
     df = df.drop_duplicates('smiles').dropna(subset=['label']).drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
     df = df[~df.Smiles.isin(train_df.Smiles)]
     augmented_df = pd.concat((train_df,df)).drop_duplicates('Smiles')
