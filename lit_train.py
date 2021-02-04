@@ -340,9 +340,9 @@ def cli_main(process_data=True):
 
     test_dataset = MoleculeNet(root='./',name='test')
 
-    if process_data:
-        train_dataset.process()
-        test_dataset.process()
+    # if process_data:
+    train_dataset.process()
+    test_dataset.process()
 
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of test graphs: {len(test_dataset)}')
