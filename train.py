@@ -111,7 +111,7 @@ def main():
 
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of test graphs: {len(test_dataset)}')
-    print(f'Number of eval graphs: {len(eval_dataset)}')
+    # print(f'Number of eval graphs: {len(eval_dataset)}')
 
     # train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
