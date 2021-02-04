@@ -95,7 +95,6 @@ e_map = {
 
 
 
-
 class LitClassifier(pl.LightningModule):
     def __init__(self, net, learning_rate=1e-3):
         super().__init__()
@@ -130,12 +129,12 @@ class LitClassifier(pl.LightningModule):
     def configure_optimizers(self):
         # self.hparams available because we called self.save_hyperparameters()
         optimizer=torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        scheduler=ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
-        return {
-            'optimizer': optimizer,
-            'lr_scheduler': scheduler,
-            'monitor': 'val_loss'
-        }
+        # scheduler=ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
+        return optimizer #{
+            # 'optimizer': optimizer,
+            # 'lr_scheduler': scheduler,
+            # 'monitor': 'val_loss'
+            # }
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -337,7 +336,6 @@ def cli_main():
     # data
     # ------------
 
-    torch.manual_seed(12345)
 
     train_dataset = MoleculeNet(root='./',name='train')#_augmented')
     train_dataset.process()
