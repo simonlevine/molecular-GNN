@@ -337,13 +337,16 @@ def cli_main(process_data=True):
 
 
     dataset = MoleculeNet(root='./',name='train_augmented')
-    train_dataset, val_dataset = random_split(dataset, [17000, 2646])
     test_dataset = MoleculeNet(root='./',name='test')
 
     # if process_data:
     train_dataset.process()
-    val_dataset.process()
     test_dataset.process()
+
+
+    train_dataset, val_dataset = random_split(train_dataset, [17000, 2646])
+    val_dataset.process()
+
 
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of validation graphs: {len(val_dataset)}')
