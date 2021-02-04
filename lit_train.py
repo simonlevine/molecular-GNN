@@ -337,7 +337,7 @@ def cli_main(process_data=True):
 
 
     dataset = MoleculeNet(root='./',name='train_augmented')
-    train_dataset, val_dataset = random_split(train_dataset, [17000, 2646])
+    train_dataset, val_dataset = random_split(dataset, [17000, 2646])
     test_dataset = MoleculeNet(root='./',name='test')
 
     # if process_data:
