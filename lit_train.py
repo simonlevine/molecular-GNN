@@ -36,7 +36,7 @@ from ogb.graphproppred.mol_encoder import AtomEncoder
 from torch_geometric.data import DataLoader
 from torch_geometric.nn import BatchNorm, global_mean_pool
 
-from models.pytorch_geometric.pna import PNAConvSimple
+from models.pytorch_geometric.pna import PNAConvSimple, PNAConv
 
 try:
     from rdkit import Chem
@@ -95,7 +95,7 @@ def cli_main(process_data=True):
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer(fast_dev_run=False,gpus=0,max_epochs=2)
+    trainer = pl.Trainer(fast_dev_run=False,gpus=1,max_epochs=300)
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
@@ -178,24 +178,18 @@ class LitClassifier(pl.LightningModule):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
         loss = self.criterion(y_hat.to(torch.float32), data.y.to(torch.float32)) #.item() * data.num_graphs
-        self.log('train_loss', loss, on_epoch=True)
+
+        self.log('train_loss', loss, on_epoch=True,prog_bar=True)
         return loss #.item() * data.num_graphs
 
     def validation_step(self, batch, batch_idx):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
         loss = self.criterion(y_hat.to(torch.float32), data.y.to(torch.float32))
-        self.log('val_loss', loss, on_epoch=True)
-
-    # def test_step(self, batch, batch_idx):
-    #     x, y = batch
-    #     y_hat = self.backbone(x)
-    #     loss = F.cross_entropy(y_hat, y)
-    #     self.log('test_loss', loss)
+        self.log('val_loss', loss, on_epoch=True,prog_bar=True)
 
     def configure_optimizers(self):
-        # self.hparams available because we called self.save_hyperparameters()
-        optimizer=torch.optim.Adam(self.net.parameters(), lr=0.01)
+        optimizer=torch.optim.Adam(self.net.parameters(), lr=0.001)
         scheduler=ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
         return {
             'optimizer': optimizer,
@@ -368,7 +362,7 @@ class Net(torch.nn.Module):
         self.convs = ModuleList()
         self.batch_norms = ModuleList()
         for _ in range(4):
-            conv = PNAConvSimple(in_channels=70, out_channels=70, aggregators=aggregators,
+            conv = PNAConv(in_channels=70, out_channels=70, aggregators=aggregators,
                                  scalers=scalers, deg=degree, post_layers=1)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(70))
@@ -391,27 +385,19 @@ class Net(torch.nn.Module):
 
 if __name__ == '__main__':
     train_df = pd.read_csv('train/raw/train.csv')
-    # test_df = pd.read_csv('test/raw/holdout_set.csv')
-    # eval_df = pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
 
     df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
-    # df=df[['smiles','logP','logD']]
-    df=df[['smiles','logD']]
-
-    df['label'] = df['logD']
-    # df['label'] = df['label'].fillna(df['logP'])
-
-    df = df.drop(columns=['logD']).rename(columns = {'smiles':'Smiles'})
-
-    augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
-
-    aug_train_df = augmented_df.sample(frac = 0.80)
+    df=df[['smiles','logP','logD']]
+    df['label']=df['logD'].fillna(df['logP'])
+    df = df.drop_duplicates('smiles').dropna(subset=['label']).drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
+    df = df[~df.Smiles.isin(train_df.Smiles)]
+    augmented_df = pd.concat((train_df,df)).drop_duplicates('Smiles')
+    
+    aug_train_df = augmented_df.sample(frac = 0.85)
     aug_val_df =  augmented_df.drop(aug_train_df.index) 
 
     augmented_df.to_csv('./all_augmented/raw/all_augmented.csv',index=False)
     aug_train_df.to_csv('./train_augmented/raw/train_augmented.csv',index=False)
     aug_val_df.to_csv('./val_augmented/raw/val_augmented.csv',index=False)
-
-
 
     cli_main(process_data=False)
