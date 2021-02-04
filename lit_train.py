@@ -177,6 +177,8 @@ class MoleculeNet(InMemoryDataset):
         'test':['Test','holdout_set.csv','holdout_set',0,1],
         # 'eval': ['Lipophilicity Filtered', 'Lipophilicity_filtered.csv', 'Lipophilicity_filtered', 0, 1], #stanford dataset
         'train_augmented':['Train Augmented','train_augmented.csv','train_augmented',0,1], #vantai train + stanford
+        'eval_augmented':['Eval Augmented','eval_augmented.csv','eval_augmented',0,1], #vantai train + stanford
+
     }
 
     def __init__(self, root, name, transform=None, pre_transform=None,
@@ -335,14 +337,9 @@ def cli_main(process_data=True):
     # data
     # ------------
 
-
-    dataset = MoleculeNet(root='./',name='train_augmented')
+    train_dataset = MoleculeNet(root='./',name='train_augmented')
+    val_dataset = MoleculeNet(root='./',name='val_augmented')
     test_dataset = MoleculeNet(root='./',name='test')
-
-    # dataset.shuffle()
-
-    # train_dataset=dataset[:17000]
-    # val_dataset=dataset[17000:]
 
     # if process_data:
     train_dataset.process()
