@@ -110,7 +110,7 @@ class LitClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
-        loss = self.criterion(y_hat.to(torch.float32), data.y.to(torch.float32)).item() * data.num_graphs
+        loss = self.criterion(y_hat.to(torch.float32), data.y.to(torch.float32)) #.item() * data.num_graphs
         self.log('train_loss', loss, on_epoch=True)
         return loss #.item() * data.num_graphs
 
