@@ -373,7 +373,7 @@ def cli_main():
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.fast_dev_run=True
     trainer.gpus=1
-    trainer.fit(model, train_loader, val_loader)
+    trainer.fit(model, train_loader) #, val_loader)
 
     # ------------
     # # testing
