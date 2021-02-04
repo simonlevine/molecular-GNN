@@ -336,15 +336,17 @@ def cli_main(process_data=True):
     # ------------
 
 
-    train_dataset = MoleculeNet(root='./',name='train_augmented')
+    dataset = MoleculeNet(root='./',name='train_augmented')
     test_dataset = MoleculeNet(root='./',name='test')
+
+    dataset.shuffle()
+
+    train_dataset=dataset[:17000]
+    val_dataset=dataset[17000:]
 
     # if process_data:
     train_dataset.process()
     test_dataset.process()
-
-
-    train_dataset, val_dataset = random_split(train_dataset, [17000, 2646])
     val_dataset.process()
 
 
