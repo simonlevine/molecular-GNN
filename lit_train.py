@@ -177,7 +177,7 @@ class MoleculeNet(InMemoryDataset):
         'test':['Test','holdout_set.csv','holdout_set',0,1],
         # 'eval': ['Lipophilicity Filtered', 'Lipophilicity_filtered.csv', 'Lipophilicity_filtered', 0, 1], #stanford dataset
         'train_augmented':['Train Augmented','train_augmented.csv','train_augmented',0,1], #vantai train + stanford
-        'eval_augmented':['Val Augmented','val_augmented.csv','val_augmented',0,1], #vantai train + stanford
+        'val_augmented':['Val Augmented','val_augmented.csv','val_augmented',0,1], #vantai train + stanford
 
     }
 
