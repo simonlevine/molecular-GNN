@@ -341,6 +341,6 @@ if __name__ == '__main__':
     df['label'] = df['label'].fillna(df['logP'])
     df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
     augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
-    augmented_df.to_csv('/content/molecular-GNN/train_augmented/raw/train_augmented.csv',index=False)
+    augmented_df.to_csv('./train_augmented/raw/train_augmented.csv',index=False)
 
     cli_main()
