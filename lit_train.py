@@ -371,7 +371,7 @@ def cli_main(process_data=True):
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer(fast_dev_run=False,gpus=1,max_epochs=300)
+    trainer = pl.Trainer(fast_dev_run=False,gpus=1,max_epochs=200)
     trainer.fit(model, train_loader, val_loader)
 
     # ------------
