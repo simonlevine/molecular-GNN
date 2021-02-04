@@ -110,14 +110,14 @@ class LitClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
-        loss = self.criterion(y_hat.to(torch.float32), y.to(torch.float32))
+        loss = self.criterion(y_hat.to(torch.float32), data.y.to(torch.float32))
         self.log('train_loss', loss, on_epoch=True)
         return loss.item() * data.num_graphs
 
     def validation_step(self, batch, batch_idx):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
-        loss = self.criterion(y_hat.to(torch.float32), y.to(torch.float32))
+        loss = self.criterion(y_hat.to(torch.float32), data.y.to(torch.float32))
         self.log('val_loss', loss, on_epoch=True)
 
     # def test_step(self, batch, batch_idx):
@@ -319,7 +319,7 @@ class Net(torch.nn.Module):
 
 
 
-def cli_main():
+def cli_main(process_data=True):
     pl.seed_everything(1234)
 
     # ------------
@@ -337,10 +337,12 @@ def cli_main():
 
 
     train_dataset = MoleculeNet(root='./',name='train_augmented')
-    train_dataset.process()
 
     test_dataset = MoleculeNet(root='./',name='test')
-    test_dataset.process()
+
+    if process_data:
+        train_dataset.process()
+        test_dataset.process()
 
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of test graphs: {len(test_dataset)}')
@@ -397,4 +399,4 @@ if __name__ == '__main__':
     augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
     augmented_df.to_csv('./train_augmented/raw/train_augmented.csv',index=False)
 
-    cli_main()
+    cli_main(process_data=False)
