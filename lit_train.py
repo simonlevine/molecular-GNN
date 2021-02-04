@@ -117,9 +117,9 @@ class MoleculeNet(InMemoryDataset):
 
     # Format: name: [display_name, url_name, csv_name, smiles_idx, y_idx]
     names = {
-        'train': ['Train', '60170fff5b630f3433c202be_train.csv', '60170fff5b630f3433c202be_train', 0, 1],
-        'test':['Test','60170fffa2720fa4d0b9067a_holdout_set.csv','60170fffa2720fa4d0b9067a_holdout_set',0,1],
-        'eval': ['Lipophilicity Filtered', 'Lipophilicity_filtered.csv', 'Lipophilicity_filtered', 0, 1], #stanford dataset
+        'train': ['Train', 'train.csv', 'train', 0, 1],
+        'test':['Test','holdout_set.csv','holdout_set',0,1],
+        # 'eval': ['Lipophilicity Filtered', 'Lipophilicity_filtered.csv', 'Lipophilicity_filtered', 0, 1], #stanford dataset
         'train_augmented':['Train Augmented','train_augmented.csv','train_augmented',0,1], #vantai train + stanford
     }
 
@@ -279,19 +279,6 @@ def cli_main():
     # data
     # ------------
 
-    train_df = pd.read_csv('train/raw/train.csv')
-    test_df = pd.read_csv('test/raw/holdout_set.csv')
-    # eval_df = pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
-
-    df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
-    df=df[['smiles','logP','logD']]
-    # df = df.drop_duplicates('smiles')
-    df['label'] = df['logD']
-    df['label'] = df['label'].fillna(df['logP'])
-    df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
-    augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
-    augmented_df.to_csv('/content/molecular-GNN/train_augmented/raw/train_augmented.csv',index=False)
-
     torch.manual_seed(12345)
 
     train_dataset = MoleculeNet(root='./',name='train_augmented')
@@ -343,4 +330,17 @@ def cli_main():
 
 
 if __name__ == '__main__':
+    train_df = pd.read_csv('train/raw/train.csv')
+    # test_df = pd.read_csv('test/raw/holdout_set.csv')
+    # eval_df = pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
+
+    df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
+    df=df[['smiles','logP','logD']]
+    # df = df.drop_duplicates('smiles')
+    df['label'] = df['logD']
+    df['label'] = df['label'].fillna(df['logP'])
+    df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
+    augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
+    augmented_df.to_csv('/content/molecular-GNN/train_augmented/raw/train_augmented.csv',index=False)
+
     cli_main()
