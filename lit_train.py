@@ -348,7 +348,7 @@ def cli_main():
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of test graphs: {len(test_dataset)}')
 
-    train_dataset.shuffle()
+    # train_dataset.shuffle()
     # train_dataset=train_dataset[:17000]
     # val_dataset=train_dataset[17000:]
 
