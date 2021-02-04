@@ -110,14 +110,14 @@ class LitClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
-        loss = self.criterion(y_hat.to(torch.float32), y_hat.y.to(torch.float32))
+        loss = self.criterion(y_hat.to(torch.float32), y.to(torch.float32))
         self.log('train_loss', loss, on_epoch=True)
         return loss.item() * data.num_graphs
 
     def validation_step(self, batch, batch_idx):
         data = batch
         y_hat = self.net(data.x, data.edge_index, None, data.batch)
-        loss = self.criterion(y_hat.to(torch.float32), y_hat.y.to(torch.float32))
+        loss = self.criterion(y_hat.to(torch.float32), y.to(torch.float32))
         self.log('val_loss', loss, on_epoch=True)
 
     # def test_step(self, batch, batch_idx):
@@ -336,7 +336,7 @@ def cli_main():
     # ------------
 
 
-    train_dataset = MoleculeNet(root='./',name='train')# train_augmented
+    train_dataset = MoleculeNet(root='./',name='train_augmented')
     train_dataset.process()
 
     test_dataset = MoleculeNet(root='./',name='test')
