@@ -43,6 +43,73 @@ try:
 except ImportError:
     Chem = None
 
+
+def cli_main(process_data=True):
+    pl.seed_everything(1234)
+
+    # ------------
+    # args
+    # ------------
+    parser = ArgumentParser()
+    parser.add_argument('--batch_size', default=32, type=int)
+    parser = pl.Trainer.add_argparse_args(parser)
+    parser = LitClassifier.add_model_specific_args(parser)
+    args = parser.parse_args()
+
+    # ------------
+    # data
+    # ------------
+
+    train_dataset = MoleculeNet(root='./',name='train_augmented')
+    # val_dataset = MoleculeNet(root='./',name='alt')
+    val_dataset = MoleculeNet(root='./',name='val_augmented')
+
+    test_dataset = MoleculeNet(root='./',name='test')
+
+    # if process_data:
+    train_dataset.process()
+    test_dataset.process()
+    val_dataset.process()
+
+
+    print(f'Number of training graphs: {len(train_dataset)}')
+    print(f'Number of validation graphs: {len(val_dataset)}')
+    print(f'Number of test graphs: {len(test_dataset)}')
+
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
+
+    deg = torch.zeros(10, dtype=torch.long)
+    for data in tqdm(train_dataset):
+        d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
+        deg += torch.bincount(d, minlength=deg.numel())
+
+    # ------------
+    # model
+    # ------------
+    model = LitClassifier(Net(deg), args.learning_rate)
+
+    # ------------
+    # training
+    # ------------
+    trainer = pl.Trainer(fast_dev_run=False,gpus=0,max_epochs=2)
+    trainer.fit(model, train_loader, val_loader)
+
+    # ------------
+    # # testing
+    # # ------------
+    # result = trainer.test(test_dataloaders=test_loader)
+    # print(result)
+    
+    out = [float(model.net(data.x, data.edge_index, None, data.batch).cpu().detach().numpy().squeeze()) for data in test_loader]
+    print(out)
+    submission_df = pd.read_csv('test/raw/holdout_set.csv')
+    submission_df['predicted']=out
+    submission_df.to_csv('submissions/holdout_set.csv',index=False)
+
 x_map = {
     'atomic_num':
     list(range(0, 119)),
@@ -322,82 +389,19 @@ class Net(torch.nn.Module):
 
 
 
-def cli_main(process_data=True):
-    pl.seed_everything(1234)
-
-    # ------------
-    # args
-    # ------------
-    parser = ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser = pl.Trainer.add_argparse_args(parser)
-    parser = LitClassifier.add_model_specific_args(parser)
-    args = parser.parse_args()
-
-    # ------------
-    # data
-    # ------------
-
-    train_dataset = MoleculeNet(root='./',name='train')
-    val_dataset = MoleculeNet(root='./',name='alt')
-    test_dataset = MoleculeNet(root='./',name='test')
-
-    # if process_data:
-    train_dataset.process()
-    test_dataset.process()
-    val_dataset.process()
-
-
-    print(f'Number of training graphs: {len(train_dataset)}')
-    print(f'Number of validation graphs: {len(val_dataset)}')
-    print(f'Number of test graphs: {len(test_dataset)}')
-
-
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-
-
-    deg = torch.zeros(10, dtype=torch.long)
-    for data in tqdm(train_dataset):
-        d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
-        deg += torch.bincount(d, minlength=deg.numel())
-
-    # ------------
-    # model
-    # ------------
-    model = LitClassifier(Net(deg), args.learning_rate)
-
-    # ------------
-    # training
-    # ------------
-    trainer = pl.Trainer(fast_dev_run=False,gpus=1,max_epochs=200)
-    trainer.fit(model, train_loader, val_loader)
-
-    # ------------
-    # # testing
-    # # ------------
-    # result = trainer.test(test_dataloaders=test_loader)
-    # print(result)
-    
-    out = [float(model.net(data.x, data.edge_index, None, data.batch).cpu().detach().numpy().squeeze()) for data in test_loader]
-    print(out)
-    submission_df = pd.read_csv('test/raw/holdout_set.csv')
-    submission_df['predicted']=out
-    submission_df.to_csv('submissions/holdout_set.csv',index=False)
-
-
 if __name__ == '__main__':
     train_df = pd.read_csv('train/raw/train.csv')
     # test_df = pd.read_csv('test/raw/holdout_set.csv')
     # eval_df = pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
 
     df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
-    df=df[['smiles','logP','logD']]
-    # df = df.drop_duplicates('smiles')
+    # df=df[['smiles','logP','logD']]
+    df=df[['smiles','logD']]
+
     df['label'] = df['logD']
-    df['label'] = df['label'].fillna(df['logP'])
-    df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
+    # df['label'] = df['label'].fillna(df['logP'])
+
+    df = df.drop(columns=['logD']).rename(columns = {'smiles':'Smiles'})
 
     augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
 
