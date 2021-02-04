@@ -337,7 +337,6 @@ def cli_main(process_data=True):
 
 
     train_dataset = MoleculeNet(root='./',name='train_augmented')
-
     test_dataset = MoleculeNet(root='./',name='test')
 
     # if process_data:
@@ -347,9 +346,7 @@ def cli_main(process_data=True):
     print(f'Number of training graphs: {len(train_dataset)}')
     print(f'Number of test graphs: {len(test_dataset)}')
 
-    train_dataset.shuffle()
-    train_dataset=train_dataset[:17000]
-    val_dataset=train_dataset[17000:]
+    mnist_train, mnist_val = random_split(train_dataset, [17000, 2646])
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
