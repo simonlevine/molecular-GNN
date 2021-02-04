@@ -1,3 +1,12 @@
+from argparse import ArgumentParser
+
+import torch
+import pytorch_lightning as pl
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, random_split
+import torch.nn as nn
+
+
 import pandas as pd
 import glob
 import os
@@ -29,141 +38,53 @@ from torch_geometric.nn import BatchNorm, global_mean_pool
 
 from models.pytorch_geometric.pna import PNAConvSimple
 
+class LitClassifier(pl.LightningModule):
+    def __init__(self, net, learning_rate=1e-3):
+        super().__init__()
+        self.save_hyperparameters()
+        self.net = net
+        self.criterion = nn.L1Loss()
 
-try:
-    from rdkit import Chem
-except ImportError:
-    Chem = None
+    def forward(self, x):
+        # use forward for inference/predictions
+        embedding = self.net(x)
+        return embedding
 
-x_map = {
-    'atomic_num':
-    list(range(0, 119)),
-    'chirality': [
-        'CHI_UNSPECIFIED',
-        'CHI_TETRAHEDRAL_CW',
-        'CHI_TETRAHEDRAL_CCW',
-        'CHI_OTHER',
-    ],
-    'degree':
-    list(range(0, 11)),
-    'formal_charge':
-    list(range(-5, 7)),
-    'num_hs':
-    list(range(0, 9)),
-    'num_radical_electrons':
-    list(range(0, 5)),
-    'hybridization': [
-        'UNSPECIFIED',
-        'S',
-        'SP',
-        'SP2',
-        'SP3',
-        'SP3D',
-        'SP3D2',
-        'OTHER',
-    ],
-    'is_aromatic': [False, True],
-    'is_in_ring': [False, True],
-}
+    def training_step(self, batch, batch_idx):
+        data = batch
+        y_hat = self.net(data.x, data.edge_index, None, data.batch)
+        loss = self.criterion(y_hat.to(torch.float32), y_hat.y.to(torch.float32))
+        self.log('train_loss', loss, on_epoch=True)
+        return loss.item() * data.num_graphs
 
-e_map = {
-    'bond_type': [
-        'misc',
-        'SINGLE',
-        'DOUBLE',
-        'TRIPLE',
-        'AROMATIC',
-    ],
-    'stereo': [
-        'STEREONONE',
-        'STEREOZ',
-        'STEREOE',
-        'STEREOCIS',
-        'STEREOTRANS',
-        'STEREOANY',
-    ],
-    'is_conjugated': [False, True],
-}
+    def validation_step(self, batch, batch_idx):
+        data = batch
+        y_hat = self.net(data.x, data.edge_index, None, data.batch)
+        loss = self.criterion(y_hat.to(torch.float32), y_hat.y.to(torch.float32))
+        self.log('val_loss', loss, on_epoch=True)
 
+    # def test_step(self, batch, batch_idx):
+    #     x, y = batch
+    #     y_hat = self.backbone(x)
+    #     loss = F.cross_entropy(y_hat, y)
+    #     self.log('test_loss', loss)
 
-def main():
+    def configure_optimizers(self):
+        # self.hparams available because we called self.save_hyperparameters()
+        optimizer=torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        scheduler=ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': scheduler,
+            'monitor': 'val_loss'
+        }
 
-    train_df = pd.read_csv('train/raw/train.csv')
-    test_df = pd.read_csv('test/raw/holdout_set.csv')
-    # eval_df = pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument('--learning_rate', type=float, default=0.01)
+        return parser
 
-    df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
-    df=df[['smiles','logP','logD']]
-    # df = df.drop_duplicates('smiles')
-    df['label'] = df['logD']
-    df['label'] = df['label'].fillna(df['logP'])
-    df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
-    augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
-    augmented_df.to_csv('/content/molecular-GNN/train_augmented/raw/train_augmented.csv',index=False)
-
-    torch.manual_seed(12345)
-
-    train_dataset = MoleculeNet(root='./',name='train_augmented')
-    train_dataset.process()
-
-    test_dataset = MoleculeNet(root='./',name='test')
-    test_dataset.process()
-
-    print(f'Number of training graphs: {len(train_dataset)}')
-    print(f'Number of test graphs: {len(test_dataset)}')
-    # print(f'Number of eval graphs: {len(eval_dataset)}')
-
-    # train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-    # eval_loader = DataLoader(eval_dataset, batch_size=32, shuffle=False)
-
-    for step, data in enumerate(test_loader):
-        print(f'Step {step + 1}:')
-        print('=======')
-        print(f'Number of graphs in the current batch: {data.num_graphs}')
-        print(data)
-        print()
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = Net().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=20, min_lr=0.0001)
-
-    # Compute in-degree histogram over training data.
-
-    deg = torch.zeros(10, dtype=torch.long)
-    for data in tqdm(train_dataset):
-        d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
-        deg += torch.bincount(d, minlength=deg.numel())
-
-
-    for epoch in range(1, 201):
-        loss = train(epoch) #MAE
-        print(f'Epoch: {epoch:02d}, MAE Loss: {loss:.4f}')
-
-    out = [float(model(data.x, data.edge_index, None, data.batch).cpu().detach().numpy().squeeze()) for data in test_loader]
-
-    submission_df = pd.read_csv('test/raw/holdout_set.csv')
-    submission_df['predicted']=out
-    submission_df.to_csv('submissions/holdout_set.csv',index=False)
-
-
-def train(epoch):
-    model.train()
-
-    total_loss = 0
-    for data in train_loader:
-        data = data.to(device)
-        optimizer.zero_grad()
-        out = model(data.x, data.edge_index, None, data.batch)
-
-        loss = torch.nn.L1Loss()(out.to(torch.float32), data.y.to(torch.float32))
-        loss.backward()
-        total_loss += loss.item() * data.num_graphs
-        optimizer.step()
-    return total_loss / len(train_loader.dataset)
 
 
 class MoleculeNet(InMemoryDataset):
@@ -310,7 +231,7 @@ class MoleculeNet(InMemoryDataset):
         return '{}({})'.format(self.names[self.name][0], len(self))
 
 class Net(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, degree):
         super(Net, self).__init__()
 
         self.node_emb = AtomEncoder(emb_dim=70)
@@ -322,7 +243,7 @@ class Net(torch.nn.Module):
         self.batch_norms = ModuleList()
         for _ in range(4):
             conv = PNAConvSimple(in_channels=70, out_channels=70, aggregators=aggregators,
-                                 scalers=scalers, deg=deg, post_layers=1)
+                                 scalers=scalers, deg=degree, post_layers=1)
             self.convs.append(conv)
             self.batch_norms.append(BatchNorm(70))
 
@@ -341,5 +262,85 @@ class Net(torch.nn.Module):
 
 
 
-if __name__=='__main__':
-    main()
+
+def cli_main():
+    pl.seed_everything(1234)
+
+    # ------------
+    # args
+    # ------------
+    parser = ArgumentParser()
+    parser.add_argument('--batch_size', default=32, type=int)
+    parser.add_argument('--fast_dev_run', default=True, type=bool)
+    parser = pl.Trainer.add_argparse_args(parser)
+    parser = LitClassifier.add_model_specific_args(parser)
+    args = parser.parse_args()
+
+    # ------------
+    # data
+    # ------------
+
+    train_df = pd.read_csv('train/raw/train.csv')
+    test_df = pd.read_csv('test/raw/holdout_set.csv')
+    # eval_df = pd.read_csv('alt/raw/Lipophilicity.csv', usecols=['exp','smiles']).rename(columns={'smiles':'Smiles','exp': 'label'})
+
+    df = pd.concat(map(pd.read_csv, glob.glob(os.path.join('', "./alt/raw/*.csv"))))
+    df=df[['smiles','logP','logD']]
+    # df = df.drop_duplicates('smiles')
+    df['label'] = df['logD']
+    df['label'] = df['label'].fillna(df['logP'])
+    df = df.drop(columns=['logP','logD']).rename(columns = {'smiles':'Smiles'})
+    augmented_df = pd.concat((train_df,df)).dropna().drop_duplicates('Smiles')
+    augmented_df.to_csv('/content/molecular-GNN/train_augmented/raw/train_augmented.csv',index=False)
+
+    torch.manual_seed(12345)
+
+    train_dataset = MoleculeNet(root='./',name='train_augmented')
+    train_dataset.process()
+
+    test_dataset = MoleculeNet(root='./',name='test')
+    test_dataset.process()
+
+    print(f'Number of training graphs: {len(train_dataset)}')
+    print(f'Number of test graphs: {len(test_dataset)}')
+
+    train_dataset.shuffle()
+    train_dataset=train_dataset[:17000]
+    val_dataset=train_dataset[17000:]
+
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
+
+    deg = torch.zeros(10, dtype=torch.long)
+    for data in tqdm(train_dataset):
+        d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
+        deg += torch.bincount(d, minlength=deg.numel())
+
+    # ------------
+    # model
+    # ------------
+    model = LitClassifier(Net(deg), args.learning_rate)
+
+    # ------------
+    # training
+    # ------------
+    trainer = pl.Trainer.from_argparse_args(args)
+    trainer.fit(model, train_loader, val_loader)
+
+    # ------------
+    # # testing
+    # # ------------
+    # result = trainer.test(test_dataloaders=test_loader)
+    # print(result)
+
+    out = [float(model(data.x, data.edge_index, None, data.batch).cpu().detach().numpy().squeeze()) for data in test_loader]
+    print(out)
+    submission_df = pd.read_csv('test/raw/holdout_set.csv')
+    submission_df['predicted']=out
+    submission_df.to_csv('submissions/holdout_set.csv',index=False)
+
+
+if __name__ == '__main__':
+    cli_main()
